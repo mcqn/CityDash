@@ -1,0 +1,10 @@
+testing: true
+ttn:
+  user: 'THINGS NETWORK USERNAME'
+  pass: 'THINGS NETWORK PASSWORD'
+issues:
+  # Github repo to report issues under
+  url: "https://api.github.com/repos/OWNER/REPO-NAME/issues"
+  oauth_token: "GITHUB OAUTH2 TOKEN"
+  # If your issue list uses HTTPS rather than HTTP, set this to true
+  url_is_https: true
