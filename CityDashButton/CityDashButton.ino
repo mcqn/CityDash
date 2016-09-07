@@ -18,18 +18,18 @@ int gLastButtonState = HIGH;
 const int kButtonDebounce = 50;
 
 // Status LED details
-const int kLEDPin = 7;
-
+const int kFaultLEDPin = 7;
+const int kPendingLEDPin = 8;
 
 // CityDash message globals
-const int kCityDashStatusOk = 0;
-const int kCityDashStatusPending = 1;
-const char* kCityDashMsgButtonPressed = "1";
-const char* kCityDashMsgNOP = "0";
+const byte kCityDashStatusOk = 0;
+const byte kCityDashStatusPending = 1;
+const byte kCityDashStatusFault = 2;
 // How often we poll for downstream messages
 const unsigned long kMessagePollingInterval = 30000UL;
 unsigned long gLastMessageTime = 0;
 
+byte gCurrentStatus = kCityDashStatusOk;
 
 // LoRaWAN network details
 
@@ -48,9 +48,12 @@ void setup() {
   // Configure button
   pinMode(kButtonPin, INPUT_PULLUP);
   
-  // Set up status LED
-  pinMode(kLEDPin, OUTPUT);
-  digitalWrite(kLEDPin, LOW);
+  // Set up status LEDs
+  pinMode(kFaultLEDPin, OUTPUT);
+  pinMode(kPendingLEDPin, OUTPUT);
+  // Start with both status LEDs on, until we've joined the network
+  digitalWrite(kFaultLEDPin, HIGH);
+  digitalWrite(kPendingLEDPin, HIGH);
 
   // Set up LoRaWAN module
   gLoRaSerial.begin(57600);
@@ -71,6 +74,9 @@ void setup() {
   Serial.println("Set up on the Things Network.");
 
   delay(1000);
+  // We're online now, default to both LEDs off
+  digitalWrite(kFaultLEDPin, LOW);
+  digitalWrite(kPendingLEDPin, LOW);
 }
 
 void loop() {
@@ -95,18 +101,22 @@ void loop() {
     // a proper button press)
     Serial.println("Button pressed!");
     // Report the button press to the Things Network
-    bytesReceived = gTTN.sendString(kCityDashMsgButtonPressed);
+    gCurrentStatus = kCityDashStatusPending;
+    bytesReceived = gTTN.sendBytes(&gCurrentStatus, sizeof(gCurrentStatus));
     // Remember when we last sent something
     gLastMessageTime = millis();
+    // Let the user know we're on the case
+    digitalWrite(kPendingLEDPin, HIGH);
   }
   gLastButtonState = buttonState;  
 
   if (millis() - gLastMessageTime > kMessagePollingInterval)
   {
     // We haven't checked for incoming messages for a while
-    // so send a NOP message
+    // Send our current status, which will provide a retry
+    // mechanism for any lost packets too
     Serial.println("Polling for messages");
-    bytesReceived = gTTN.sendString(kCityDashMsgNOP);
+    bytesReceived = gTTN.sendBytes(&gCurrentStatus, sizeof(gCurrentStatus));
     gLastMessageTime = millis();
   }
 
@@ -125,10 +135,25 @@ void loop() {
     switch (gTTN.downlink[0])
     {
     case kCityDashStatusOk:
-      digitalWrite(kLEDPin, LOW);
+      // Ignore Ok status if we've just reported a fault
+      if (gCurrentStatus != kCityDashStatusPending)
+      {
+        digitalWrite(kPendingLEDPin, LOW);
+        digitalWrite(kFaultLEDPin, LOW);
+        gCurrentStatus = kCityDashStatusOk;
+      }
       break;
     case kCityDashStatusPending:
-      digitalWrite(kLEDPin, HIGH);
+      // We shouldn't ever receive this status from the server.
+      // Light up both LEDs to show the bug
+      digitalWrite(kFaultLEDPin, HIGH);
+      digitalWrite(kPendingLEDPin, HIGH);
+      gCurrentStatus = kCityDashStatusPending;
+      break;
+    case kCityDashStatusFault:
+      digitalWrite(kFaultLEDPin, HIGH);
+      digitalWrite(kPendingLEDPin, LOW);
+      gCurrentStatus = kCityDashStatusFault;
       break;
     };
   }
