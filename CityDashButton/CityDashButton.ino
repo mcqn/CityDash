@@ -12,14 +12,16 @@
 
 // "Take a reading" button details
 // Expects a button which will pull the pin to ground when pressed
-const int kButtonPin = 6;
+const int kButtonPin = 2;
 unsigned long gButtonPressedTime;
 int gLastButtonState = HIGH;
 const int kButtonDebounce = 50;
 
 // Status LED details
-const int kFaultLEDPin = 7;
-const int kPendingLEDPin = 8;
+const int kFaultLEDPin = 9;
+const int kFault2LEDPin = 6;
+const int kPendingLEDPin = 10;
+const int kPending2LEDPin = 11;
 
 // CityDash message globals
 const byte kCityDashStatusOk = 0;
@@ -50,10 +52,14 @@ void setup() {
   
   // Set up status LEDs
   pinMode(kFaultLEDPin, OUTPUT);
+  pinMode(kFault2LEDPin, OUTPUT);
   pinMode(kPendingLEDPin, OUTPUT);
+  pinMode(kPending2LEDPin, OUTPUT);
   // Start with both status LEDs on, until we've joined the network
   digitalWrite(kFaultLEDPin, HIGH);
+  digitalWrite(kFault2LEDPin, HIGH);
   digitalWrite(kPendingLEDPin, HIGH);
+  digitalWrite(kPending2LEDPin, HIGH);
 
   // Set up LoRaWAN module
   gLoRaSerial.begin(57600);
@@ -76,7 +82,9 @@ void setup() {
   delay(1000);
   // We're online now, default to both LEDs off
   digitalWrite(kFaultLEDPin, LOW);
+  digitalWrite(kFault2LEDPin, LOW);
   digitalWrite(kPendingLEDPin, LOW);
+  digitalWrite(kPending2LEDPin, LOW);
 }
 
 void loop() {
