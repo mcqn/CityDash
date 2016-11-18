@@ -1,0 +1,15 @@
+[Unit]
+Description=CityDash Server Container
+After=docker.service
+Requires=docker.service
+
+[Service]
+TimeoutStartSec=0
+Restart=always
+WorkingDirectory=/LOCATION_OF_GIT_REPO_CHECKOUT/
+ExecStartPre=-/usr/bin/docker stop %n
+ExecStartPre=-/usr/bin/docker rm %n
+ExecStart=/usr/bin/docker run --rm --name %n mcqnltd/citydash
+
+[Install]
+WantedBy=multi-user.target
