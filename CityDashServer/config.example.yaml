@@ -1,5 +1,6 @@
 testing: true
 ttn:
+  handler: 'THINGS NETWORK REGION'
   user: 'THINGS NETWORK USERNAME'
   pass: 'THINGS NETWORK PASSWORD'
 issues:
